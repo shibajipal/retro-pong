@@ -4,7 +4,9 @@ A small arcade-style Pong game built with LÖVE 2D. It features a simple two-pla
 
 ## Demo Video
 
-<video src="assets/demo_video.mp4" controls muted playsinline width="100%"></video>
+https://github.com/user-attachments/assets/7c5b326e-b754-41d1-acaf-17bd877233df
+
+
 
 ## Project Structure
 
