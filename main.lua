@@ -31,7 +31,8 @@ function love.load()
     sounds = {
         ["paddle_hit"] = love.audio.newSource("assets/sounds/paddle_hit.wav", "static"),
         ["score"] = love.audio.newSource("assets/sounds/score.wav", "static"),
-        ["wall_hit"] = love.audio.newSource("assets/sounds/wall_hit.wav", "static")
+        ["wall_hit"] = love.audio.newSource("assets/sounds/wall_hit.wav", "static"),
+        ["large_paddle_activate"] = love.audio.newSource("assets/sounds/large_paddle_activate.wav", "static"),
     }
 
     
@@ -62,9 +63,17 @@ function love.resize(w, h)
 end
 
 
-function love.keypressed(key)
+function love.keypressed(key, scancode)
     if key == "escape" then
         love.event.quit()
+    elseif key == "e" then
+        if gameState == "play" and player1.large_paddle_timer <= 0 then
+            player1:large_paddle_activate()
+        end
+    elseif scancode == "rshift" then
+        if gameState == "play" and player2.large_paddle_timer <= 0 then
+            player2:large_paddle_activate()
+        end
     elseif key == "enter" or key == "return" then
        if gameState == "start" then
         gameState = "serve"
@@ -88,7 +97,7 @@ end
 function love.keyreleased(key)
     keys[key] = false
 end
-
+local growthSpeed = 150
 function love.update(dt)
     if gameState == "serve" then
         ball.dY = math.random(-50, 50)
@@ -98,9 +107,11 @@ function love.update(dt)
             ball.dX = -math.random(140, 200)
         end
     elseif gameState == "play" then
+        player1:handle_large_paddle_powerup(growthSpeed, dt)
+        player2:handle_large_paddle_powerup(growthSpeed, dt)
         if ball:collides(player1) then
             ball.dX = -ball.dX * 1.03
-            ball.x = player1.x + player1.width 
+            ball.x = player1.x + player1.width
             if ball.dY < 0 then
                 ball.dY = -math.random(10, 150)
             else
@@ -120,7 +131,7 @@ function love.update(dt)
             sounds["paddle_hit"]:play()
         end
 
-        if ball.y <= 55 then 
+        if ball.y <= 55 then
             ball.y = 55
             ball.dY = -ball.dY
             sounds["wall_hit"]:play()
@@ -182,7 +193,6 @@ function love.update(dt)
     player1:update(dt)
     player2:update(dt)
 end
-
 function love.draw()
     push.start()
     love.graphics.clear(40/255, 45/255, 52/255, 255/255)
