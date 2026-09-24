@@ -43,7 +43,7 @@ local function include_helper(to, from, seen)
 	return to
 end
 
--- deeply copies `other' into `class'. keys in `other' that are alreadY
+-- deeply copies `other' into `class'. keys in `other' that are already
 -- defined in `class' are omitted
 local function include(class, other)
 	return include_helper(class, other, {})

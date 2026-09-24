@@ -20,6 +20,7 @@ local keys = {w = false,
 
 local cyan = {0.0, 0.898, 1.0}
 local lavender = {0.769, 0.710, 0.992}
+local golden = {1.0, 0.784, 0.341}
 
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
@@ -70,6 +71,24 @@ function love.keypressed(key, scancode)
         if gameState == "play" and player1.large_paddle_timer <= 0 then
             player1:large_paddle_activate()
         end
+    elseif key == "q" then
+        if gameState == "play" then
+            player1.curve_shot_active = true
+        end
+    elseif key == "\\" then
+        if gameState == "play" then
+            player2.curve_shot_active = true
+        end
+    elseif key == "d" then
+        if gameState == "play" then
+            player2.disorient_active = true
+            player2.disorient_timer = 3
+        end
+    elseif key == "left" then
+        if gameState == "play" then
+            player1.disorient_active = true
+            player1.disorient_timer = 3
+        end
     elseif scancode == "rshift" then
         if gameState == "play" and player2.large_paddle_timer <= 0 then
             player2:large_paddle_activate()
@@ -100,46 +119,77 @@ end
 local growthSpeed = 150
 function love.update(dt)
     if gameState == "serve" then
-        ball.dY = math.random(-50, 50)
+        ball.dy = math.random(-50, 50)
         if servingPlayer == 1 then
-            ball.dX = math.random(140, 200)
+            ball.dx = math.random(140, 200)
         else
-            ball.dX = -math.random(140, 200)
+            ball.dx = -math.random(140, 200)
         end
     elseif gameState == "play" then
+        if player1.disorient_active then
+            player1.disorient_timer = player1.disorient_timer - dt
+            if player1.disorient_timer < 0 then
+                player1.disorient_active = false
+            end
+        end
+
+        if player2.disorient_active then
+            if player2.disorient_active then
+                player2.disorient_timer = player2.disorient_timer - dt
+                if player2.disorient_timer < 0 then
+                    player2.disorient_active = false
+                end
+            end
+        end
         player1:handle_large_paddle_powerup(growthSpeed, dt)
         player2:handle_large_paddle_powerup(growthSpeed, dt)
         if ball:collides(player1) then
-            ball.dX = -ball.dX * 1.03
+            --player2.curve_shot_active = false
+            ball.dx = -ball.dx * 1.03
             ball.x = player1.x + player1.width
-            if ball.dY < 0 then
-                ball.dY = -math.random(10, 150)
+            if player1.curve_shot_active then
+                ball:apply_curve(player1) 
+                player1.curve_shot_active = false
             else
-                ball.dY = math.random(10, 150)
+                ball.curve = 0  
+                if ball.dy < 0 then
+                    ball.dy = -math.random(10, 150)
+                else
+                    ball.dy = math.random(10, 150)
+                end
             end
             sounds["paddle_hit"]:play()
         end
 
         if ball:collides(player2) then
-            ball.dX = -ball.dX * 1.03
+            --player1.curve_shot_active = false
+            ball.curve = 0 
+            ball.dx = -ball.dx * 1.03
             ball.x = player2.x - ball.width
-            if ball.dY < 0 then
-                ball.dY = -math.random(10, 150)
+
+            if player2.curve_shot_active then
+                ball:apply_curve(player2)
+                player2.curve_shot_active = false
             else
-                ball.dY = math.random(10, 150)
+                ball.curve = 0  
+                if ball.dy < 0 then
+                    ball.dy = -math.random(10, 150)
+                else
+                    ball.dy = math.random(10, 150)
+                end
             end
             sounds["paddle_hit"]:play()
         end
 
         if ball.y <= 55 then
             ball.y = 55
-            ball.dY = -ball.dY
+            ball.dy = -ball.dy
             sounds["wall_hit"]:play()
         end
 
         if ball.y >= VIRTUAL_HEIGHT - ball.height - 5 then
             ball.y = VIRTUAL_HEIGHT - ball.height - 5
-            ball.dY = -ball.dY
+            ball.dy = -ball.dy
             sounds["wall_hit"]:play()
         end
 
@@ -172,19 +222,36 @@ function love.update(dt)
         end
     end
     if keys.w then
-        player1.dY = -PADDLE_SPEED
+        if player1.disorient_timer > 0 then
+            player1.dy = PADDLE_SPEED
+        else
+            player1.dy = -PADDLE_SPEED
+        end
     elseif keys.s then
-        player1.dY = PADDLE_SPEED
+        if player1.disorient_timer > 0 then
+            player1.dy = -PADDLE_SPEED
+        else
+            player1.dy = PADDLE_SPEED
+        end
     else
-        player1.dY = 0
+        player1.dy = 0
     end
 
     if keys.up then
-        player2.dY = -PADDLE_SPEED
+        if player2.disorient_timer > 0 then
+            player2.dy = PADDLE_SPEED
+        else
+            player2.dy = -PADDLE_SPEED
+        end
+
     elseif keys.down then
-        player2.dY = PADDLE_SPEED
+        if player2.disorient_timer > 0 then
+            player2.dy = -PADDLE_SPEED
+        else
+            player2.dy = PADDLE_SPEED
+        end
     else
-        player2.dY = 0
+        player2.dy = 0
     end
 
     if gameState == "play" then
@@ -213,8 +280,18 @@ function love.draw()
     end
 
     displayScore()
-    player1:render(cyan)
-    player2:render(lavender)
+    if player1.disorient_active then
+        player1:render(golden)
+    else
+        player1:render(cyan)
+    end
+    
+    if player2.disorient_active then
+        player2:render(golden)
+    else
+        player2:render(cyan)
+    end
+    love.graphics.setColor(1, 1, 1, 1)
     ball:render()
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.setLineWidth(5)

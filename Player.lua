@@ -5,17 +5,20 @@ function Player:init(x, y, width, height)
     self.y = y
     self.width = width
     self.height = height
-    self.dY = 0
+    self.dy = 0
     self.score = 0
     self.large_paddle_active = false
     self.large_paddle_timer = 0
+    self.curve_shot_active = false
+    self.disorient = false
+    self.disorient_timer = 0
 end
 
 function Player:update(dt)
-    if self.dY < 0 then
-        self.y = math.max(55, self.y + self.dY * dt)
+    if self.dy < 0 then
+        self.y = math.max(55, self.y + self.dy * dt)
     else
-        self.y = math.min(VIRTUAL_HEIGHT - self.height - 5, self.y + self.dY * dt)
+        self.y = math.min(VIRTUAL_HEIGHT - self.height - 5, self.y + self.dy * dt)
     end
 end
 
