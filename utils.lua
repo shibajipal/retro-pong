@@ -5,6 +5,8 @@ utils.sounds = {
         ["score"] = love.audio.newSource("assets/sounds/score.wav", "static"),
         ["wall_hit"] = love.audio.newSource("assets/sounds/wall_hit.wav", "static"),
         ["large_paddle_activate"] = love.audio.newSource("assets/sounds/large_paddle_activate.wav", "static"),
+        ["curve_shot_activate"] = love.audio.newSource("assets/sounds/curve_shot_activate.wav", "static"),
+        ["disorient_activate"] = love.audio.newSource("assets/sounds/disorient_activate.wav", "static")
     }
 
 return utils

@@ -6,10 +6,10 @@ require "Ball"
 local shader
 
 WINDOW_WIDTH = 1280
-WINDOW_HEIGHT = 720
+WINDOW_HEIGHT = 838
 
 VIRTUAL_WIDTH = 432
-VIRTUAL_HEIGHT = 243
+VIRTUAL_HEIGHT = 283
 
 PADDLE_SPEED = 250
 
@@ -34,6 +34,8 @@ function love.load()
         ["score"] = love.audio.newSource("assets/sounds/score.wav", "static"),
         ["wall_hit"] = love.audio.newSource("assets/sounds/wall_hit.wav", "static"),
         ["large_paddle_activate"] = love.audio.newSource("assets/sounds/large_paddle_activate.wav", "static"),
+        ["curve_shot_activate"] = love.audio.newSource("assets/sounds/curve_shot_activate.wav", "static"),
+        ["disorient_activate"] = love.audio.newSource("assets/sounds/disorient_activate.wav", "static")
     }
 
     
@@ -83,11 +85,15 @@ function love.keypressed(key, scancode)
         if gameState == "play" then
             player2.disorient_active = true
             player2.disorient_timer = 3
+            player2:show_powerup_popup("DISORIENT!", golden)
+            sounds["disorient_activate"]:play()
         end
     elseif key == "left" then
         if gameState == "play" then
             player1.disorient_active = true
             player1.disorient_timer = 3
+            player1:show_powerup_popup("DISORIENT!", golden)
+            sounds["disorient_activate"]:play()
         end
     elseif scancode == "rshift" then
         if gameState == "play" and player2.large_paddle_timer <= 0 then
@@ -148,7 +154,9 @@ function love.update(dt)
             ball.dx = -ball.dx * 1.03
             ball.x = player1.x + player1.width
             if player1.curve_shot_active then
-                ball:apply_curve(player1) 
+                ball:apply_curve(player1)
+                player1:show_powerup_popup("CURVE SHOT!", golden)
+                sounds["curve_shot_activate"]:play()
                 player1.curve_shot_active = false
             else
                 ball.curve = 0  
@@ -169,6 +177,8 @@ function love.update(dt)
 
             if player2.curve_shot_active then
                 ball:apply_curve(player2)
+                player2:show_powerup_popup("CURVE SHOT!", golden)
+                sounds["curve_shot_activate"]:play()
                 player2.curve_shot_active = false
             else
                 ball.curve = 0  
@@ -285,12 +295,14 @@ function love.draw()
     else
         player1:render(cyan)
     end
+    player1:render_powerup_popup(largeFont)
     
     if player2.disorient_active then
         player2:render(golden)
     else
         player2:render(cyan)
     end
+    player2:render_powerup_popup(largeFont)
     love.graphics.setColor(1, 1, 1, 1)
     ball:render()
     love.graphics.setColor(1, 1, 1, 1)
