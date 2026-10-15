@@ -21,10 +21,62 @@ local keys = {w = false,
 local cyan = {0.0, 0.898, 1.0}
 local lavender = {0.769, 0.710, 0.992}
 local golden = {1.0, 0.784, 0.341}
+local pausedGameState
+local menuPage = "main"
+local menuSelection = 1
+local menuOptions = {"RESUME", "RESTART", "HOW TO PLAY", "QUIT"}
+
+local function clearHeldKeys()
+    for key in pairs(keys) do
+        keys[key] = false
+    end
+    player1.dy = 0
+    player2.dy = 0
+end
+
+local function resetGame(nextServer)
+    player1:reset()
+    player2:reset()
+    ball:reset()
+    servingPlayer = nextServer or 1
+    winningPlayer = 1
+    gameState = "serve"
+    pausedGameState = nil
+    menuPage = "main"
+    clearHeldKeys()
+end
+
+local function resumeGame()
+    gameState = pausedGameState or "start"
+    pausedGameState = nil
+    menuPage = "main"
+    clearHeldKeys()
+end
+
+local function activateMenuOption(option)
+    if option == 1 then
+        resumeGame()
+    elseif option == 2 then
+        resetGame(1)
+    elseif option == 3 then
+        menuPage = "help"
+    elseif option == 4 then
+        love.event.quit()
+    end
+end
+
+local function menuOptionAt(x, y)
+    for index = 1, #menuOptions do
+        local optionY = 103 + (index - 1) * 34
+        if x >= 116 and x <= 316 and y >= optionY and y <= optionY + 27 then
+            return index
+        end
+    end
+end
 
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
-    love.window.setTitle("asffsfaf")
+    love.window.setTitle("retro_pong")
     smallFont = love.graphics.newFont("assets/font.ttf", 8)
     largeFont = love.graphics.newFont("assets/font.ttf", 16)
     scoreFont = love.graphics.newFont("assets/font.ttf", 24)
@@ -68,7 +120,33 @@ end
 
 function love.keypressed(key, scancode)
     if key == "escape" then
-        love.event.quit()
+        if gameState == "menu" then
+            if menuPage == "help" then
+                menuPage = "main"
+            else
+                resumeGame()
+            end
+        else
+            pausedGameState = gameState
+            gameState = "menu"
+            menuPage = "main"
+            menuSelection = 1
+            clearHeldKeys()
+        end
+        return
+    elseif gameState == "menu" then
+        if menuPage == "help" then
+            if key == "enter" or key == "return" or key == "backspace" then
+                menuPage = "main"
+            end
+        elseif key == "up" or key == "w" then
+            menuSelection = (menuSelection - 2) % #menuOptions + 1
+        elseif key == "down" or key == "s" then
+            menuSelection = menuSelection % #menuOptions + 1
+        elseif key == "enter" or key == "return" then
+            activateMenuOption(menuSelection)
+        end
+        return
     elseif key == "e" then
         if gameState == "play" and player1.large_paddle_timer <= 0 then
             player1:large_paddle_activate()
@@ -105,14 +183,10 @@ function love.keypressed(key, scancode)
        elseif gameState == "serve" then
         gameState = "play"
        elseif gameState == "done" then
-        gameState = "serve"
-        ball:reset()
-        player1.score = 0
-        player2.score = 0
         if winningPlayer == 1 then
-            servingPlayer = 2
+            resetGame(2)
         else
-            servingPlayer = 1
+            resetGame(1)
         end
        end 
     end
@@ -122,8 +196,37 @@ end
 function love.keyreleased(key)
     keys[key] = false
 end
+
+function love.mousepressed(x, y, button)
+    if gameState ~= "menu" or button ~= 1 then
+        return
+    end
+
+    local gameX, gameY = push.toGame(x, y)
+    if not gameX or not gameY then
+        return
+    end
+
+    if menuPage == "help" then
+        if gameY >= 238 and gameY <= 270 and gameX >= 155 and gameX <= 277 then
+            menuPage = "main"
+        end
+        return
+    end
+
+    local option = menuOptionAt(gameX, gameY)
+    if option then
+        menuSelection = option
+        activateMenuOption(option)
+    end
+end
+
 local growthSpeed = 150
 function love.update(dt)
+    if gameState == "menu" then
+        return
+    end
+
     if gameState == "serve" then
         ball.dy = math.random(-50, 50)
         if servingPlayer == 1 then
@@ -313,7 +416,81 @@ function love.draw()
 
     shader:send("time", love.timer.getTime())
     shader:send("screenSize", {VIRTUAL_WIDTH, VIRTUAL_HEIGHT})
+    if gameState == "menu" then
+        drawMenuOverlay()
+    end
+
     push.finish()
+end
+
+function drawMenuOverlay()
+    if menuPage == "help" then
+        drawHelpPage()
+    else
+        drawPauseMenu()
+    end
+
+    love.graphics.setColor(1, 1, 1, 1)
+end
+
+function drawPauseMenu()
+    love.graphics.setColor(0.035, 0.075, 0.095, 0.96)
+    love.graphics.rectangle("fill", 91, 42, 250, 202)
+    love.graphics.setColor(cyan)
+    love.graphics.setLineWidth(1)
+    love.graphics.rectangle("line", 91.5, 42.5, 249, 201)
+    love.graphics.setFont(largeFont)
+    love.graphics.printf("PAUSED", 100, 58, 232, "center")
+
+    for index, option in ipairs(menuOptions) do
+        local optionY = 103 + (index - 1) * 34
+        local mouseX, mouseY = love.mouse.getPosition()
+        local gameX, gameY = push.toGame(mouseX, mouseY)
+        local hovered = gameX and menuOptionAt(gameX, gameY) == index
+        local selected = menuSelection == index or hovered
+
+        if selected then
+            love.graphics.setColor(cyan[1], cyan[2], cyan[3], 0.18)
+            love.graphics.rectangle("fill", 116, optionY, 200, 27)
+            love.graphics.setColor(cyan)
+        else
+            love.graphics.setColor(0.82, 0.88, 0.88, 1)
+        end
+
+        love.graphics.setFont(smallFont)
+        love.graphics.printf(option, 118, optionY + 9, 196, "center")
+    end
+end
+
+function drawHelpPage()
+    love.graphics.setColor(0.035, 0.075, 0.095, 0.97)
+    love.graphics.rectangle("fill", 28, 25, 376, 233)
+    love.graphics.setColor(cyan)
+    love.graphics.setLineWidth(1)
+    love.graphics.rectangle("line", 28.5, 25.5, 375, 232)
+    love.graphics.setFont(largeFont)
+    love.graphics.printf("HOW TO PLAY", 42, 34, 348, "center")
+
+    love.graphics.setFont(smallFont)
+    love.graphics.setColor(golden)
+    love.graphics.print("THE MATCH", 46, 65)
+    love.graphics.setColor(0.9, 0.94, 0.94, 1)
+    love.graphics.printf("First player to score 5 points wins. Press Enter to begin a match,\nthen Enter again to serve. The server alternates after every point.", 46, 77, 340, "left")
+
+    love.graphics.setColor(golden)
+    love.graphics.print("CONTROLS", 46, 111)
+    love.graphics.setColor(0.9, 0.94, 0.94, 1)
+    love.graphics.printf("Player 1: W or S to move, E for a larger paddle, Q for a curve shot,\nLeft Arrow to disorient Player 2.\nPlayer 2: Up or Down to move, Right Shift for a larger paddle, \\ for\na curve shot, D to disorient Player 1. Escape opens this menu.", 46, 123, 340, "left")
+
+    love.graphics.setColor(golden)
+    love.graphics.print("POWER-UPS", 46, 176)
+    love.graphics.setColor(0.9, 0.94, 0.94, 1)
+    love.graphics.printf("Large Paddle temporarily increases paddle height. Curve Shot: bends\nthe ball toward the far end of the court. Disorient reverses the\nother player's movement for a short time. Keep the ball in play!", 46, 188, 340, "left")
+
+    love.graphics.setColor(cyan)
+    love.graphics.rectangle("fill", 155, 238, 122, 22)
+    love.graphics.setColor(0.025, 0.055, 0.075, 1)
+    love.graphics.printf("BACK", 155, 245, 122, "center")
 end
 
 function displayScore()

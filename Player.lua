@@ -1,6 +1,10 @@
 Player = Class{}
 local utils = require "utils"
 function Player:init(x, y, width, height)
+    self.initialX = x
+    self.initialY = y
+    self.initialWidth = width
+    self.initialHeight = height
     self.x = x
     self.y = y
     self.width = width
@@ -16,6 +20,22 @@ function Player:init(x, y, width, height)
     self.powerup_popup_timer = 0
     self.powerup_popup_duration = 0.9
     self.powerup_popup_color = {1, 0.784, 0.341}
+end
+
+function Player:reset()
+    self.x = self.initialX
+    self.y = self.initialY
+    self.width = self.initialWidth
+    self.height = self.initialHeight
+    self.dy = 0
+    self.score = 0
+    self.large_paddle_active = false
+    self.large_paddle_timer = 0
+    self.curve_shot_active = false
+    self.disorient_active = false
+    self.disorient_timer = 0
+    self.powerup_popup_text = nil
+    self.powerup_popup_timer = 0
 end
 
 function Player:update(dt)
